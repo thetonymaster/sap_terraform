@@ -2,27 +2,27 @@ provider "aws" {
   region = "${var.aws_region}"
 }
 
-data "aws_ami" "jenkins" {
-  most_recent      = true
-
-  # If we change the AWS Account in which test are run, update this value.
-  owners  = ["312506926764"]
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  filter {
-    name   = "is-public"
-    values = ["false"] // flip to public when ready for release
-  }
-
-  filter {
-    name   = "name"
-    values = ["jenkins-amazon-linux-*"]
-  }
-}
+# data "aws_ami" "jenkins" {
+#   most_recent      = true
+#
+#   # If we change the AWS Account in which test are run, update this value.
+#   owners  = ["312506926764"]
+#
+#   filter {
+#     name   = "virtualization-type"
+#     values = ["hvm"]
+#   }
+#
+#   filter {
+#     name   = "is-public"
+#     values = ["false"] // flip to public when ready for release
+#   }
+#
+#   filter {
+#     name   = "name"
+#     values = ["jenkins-amazon-linux-*"]
+#   }
+# }
 
 # Jenkins Master Instance
 module "jenkins-master" {
@@ -33,7 +33,7 @@ module "jenkins-master" {
   name                        = "${var.name == "" ? "jenkins-master" : join("-", list(var.name, "jenkins-master"))}"
   instance_type               = "${var.instance_type_master}"
 
-  ami_id                      = "${var.master_ami_id == "" ? data.aws_ami.jenkins.image_id : var.master_ami_id}"
+  ami_id                      = "${var.master_ami_id}"
   user_data                   = ""
   setup_data                  = "${data.template_file.setup_data_master.rendered}"
 
@@ -46,7 +46,7 @@ module "jenkins-master" {
 }
 
 data "template_file" "setup_data_master" {
-  template = "${file("./modules/jenkins-master/setup.tpl")}"
+  template = "${file("${path.module}/modules/jenkins-master/setup.tpl")}"
 
   vars = {
     jnlp_port = "${var.jnlp_port}"
