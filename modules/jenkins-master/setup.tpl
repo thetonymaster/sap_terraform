@@ -1,4 +1,4 @@
-#!/bin/bash
+<!-- #!/bin/bash
 set -e -x
 # This script is meant to be run in the User Data of each EC2 Instance while it's booting.
 
@@ -46,14 +46,19 @@ sleep 10
 # SET AGENT PORT
 xmlstarlet ed -u "//slaveAgentPort" -v "${jnlp_port}" /var/lib/jenkins/config.xml > /tmp/jenkins_config.xml
 sudo mv /tmp/jenkins_config.xml /var/lib/jenkins/config.xml
-sudo service jenkins restart
+sudo sed -i -e 's/false/true/g' /var/lib/jenkins/jenkins.CLI.xml
+sudo service jenkins reload
+sudo service jenkins stop
+sudo service jenkins start
 
 waitForJenkins
 
-sleep 10
+sleep 90 -->
 
 # INSTALL PLUGINS
-sudo java -jar /var/lib/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:$PASS install-plugin ${plugins}
+
+for i in {1..5}; do sudo java -jar /var/lib/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:$PASS install-plugin ${plugins} && break || sleep 15; done
+
 
 # RESTART JENKINS TO ACTIVATE PLUGINS
 sudo java -jar /var/lib/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:$PASS restart
