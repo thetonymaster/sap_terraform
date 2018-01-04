@@ -18,7 +18,4 @@ git config --file ~/gerrit_testsite/etc/gerrit.config httpd.listenUrl 'http://lo
 
 
 
-if ! [ -L /var/www ]; then
-  rm -rf /var/www
-  ln -fs /vagrant /var/www
-fi
+
