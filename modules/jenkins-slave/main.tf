@@ -3,32 +3,10 @@ locals {
   jenkins_master_url = "http://${var.jenkins_master_ip}:${var.jenkins_master_port}"
 }
 
-data "aws_ami" "jenkins_linux_slave" {
-  most_recent      = true
-
-  # If we change the AWS Account in which test are run, update this value.
-  owners  = ["312506926764"]
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  filter {
-    name   = "is-public"
-    values = ["false"] // flip to public when ready for release
-  }
-
-  filter {
-    name   = "name"
-    values = ["jenkins-slave-amazon-linux-*"]
-  }
-}
-
 # Jenkins Slaves
 resource "aws_instance" "ec2_jenkins_slave" {
   count                  =  "${var.count}"
-  ami                    = "${var.ami_id == "" ? data.aws_ami.jenkins_linux_slave.image_id : var.ami_id}"
+  ami                    = "${var.ami_id}"
   instance_type          = "${var.instance_type}"
   key_name               = "${var.ssh_key_name}"
   monitoring             = true
@@ -54,7 +32,7 @@ resource "aws_instance" "ec2_jenkins_slave" {
     inline = [
       "chmod 0600 /tmp/key.pem",
       "ssh -oStrictHostKeyChecking=no -i /tmp/key.pem ec2-user@${var.jenkins_master_ip} 'sudo cat /var/lib/jenkins/secrets/initialAdminPassword' > /tmp/secret",
-      "wget -P /tmp ${local.jenkins_master_url}/jnlpJars/jenkins-cli.jar",
+      "for i in {1..5}; do wget -P /tmp ${local.jenkins_master_url}/jnlpJars/jenkins-cli.jar && break || sleep 15; done",
       "wget -P /tmp ${local.jenkins_master_url}/jnlpJars/slave.jar",
       "sudo mv /tmp/slave.jar /home/jenkins/jenkins-slave/"
     ]
@@ -103,7 +81,7 @@ resource "aws_instance" "ec2_jenkins_slave" {
 }
 
 data "template_file" "bootstrap" {
-  template = "${file("./modules/jenkins-slave/setup.tpl")}"
+  template = "${file("${path.module}/setup.tpl")}"
 
   vars {
     jenkins_master_url = "${local.jenkins_master_url}"
