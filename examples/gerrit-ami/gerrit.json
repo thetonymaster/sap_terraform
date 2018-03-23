@@ -1,0 +1,55 @@
+{
+  "min_packer_version": "0.12.0",
+  "variables": {
+    "aws_region": "us-east-1",
+    "gerrit_version": "2.8"
+  },
+  "builders": [{
+    "name": "amazon-linux-ami",
+    "ami_name": "gerrit-amazon-linux-{{isotime | clean_ami_name}}",
+    "ami_description": "An Amazon Linux AMI that has Gerrit installed.",
+    "instance_type": "t2.micro",
+    "region": "{{user `aws_region`}}",
+    "type": "amazon-ebs",
+    "source_ami_filter": {
+      "filters": {
+        "virtualization-type": "hvm",
+        "architecture": "x86_64",
+        "name": "*amzn-ami-hvm-*",
+        "block-device-mapping.volume-type": "gp2",
+        "root-device-type": "ebs"
+      },
+      "owners": ["amazon"],
+      "most_recent": true
+    },
+    "ssh_username": "ec2-user"
+  }],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline" : [
+        "sudo yum -y update",
+        "sudo yum install -y java-1.8.0-openjdk.x86_64",
+        "sudo yum install -y git",
+        "sudo yum remove -y java-1.7*",
+        "sudo /usr/sbin/alternatives --set java /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline" : [
+        "sudo useradd --home-dir /home/gerrit --create-home --shell /bin/bash gerrit",
+        "echo 'gerrit' | sudo passwd 'gerrit' --stdin --force",
+        "sudo mkdir /home/gerrit/gerrit_testsite",
+        "wget --quiet https://www.gerritcodereview.com/download/gerrit-2.14.2.war",
+        "sudo mv gerrit-2.14.2.war /home/gerrit/gerrit-2.14.2.war"
+      ]
+  },
+  {
+    "type": "shell",
+    "inline" : [
+      "sudo chown -R gerrit:gerrit /home/gerrit",
+      "sudo -u gerrit java -jar /home/gerrit/gerrit-2.14.2.war init --batch --dev -d /home/gerrit/gerrit_testsite"
+    ]
+  }]
+}
